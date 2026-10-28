@@ -1,0 +1,944 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<style>[hidden]{display:none!important}body{margin:0}img{max-width:100%}</style>
+</head>
+<body>
+<title>Meridian Valley HealthDesk</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Familjen+Grotesk:wght@500;600;700&family=Public+Sans:ital,wght@0,400;0,500;0,600;1,400&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: service-desk console. Sticky top bar with tabs; each view is a work surface. Teal = hospital/IT, indigo = anything the AI did. */
+:root{
+  --bg:#EEF2F1; --surface:#FFFFFF; --sunk:#E4EAE8; --ink:#14201E; --muted:#56655F; --line:#D3DCD9;
+  --accent:#0D6A62; --accent-soft:#D5EBE8; --on-accent:#FFFFFF;
+  --ai:#4F45B8; --ai-soft:#E6E3FA;
+  --p1:#B8322B; --p1-soft:#F8E0DE; --p2:#B5651A; --p2-soft:#F7E7D6; --p3:#2C66A3; --p3-soft:#DCE8F5; --p4:#5E6B68; --p4-soft:#E3E8E6;
+  --ok:#2C7A44; --ok-soft:#DCEFE2;
+  --f-display:"Familjen Grotesk","Helvetica Neue",Arial,sans-serif;
+  --f-body:"Public Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-mono:"JetBrains Mono",ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+  --r:10px;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0E1514; --surface:#161F1E; --sunk:#111918; --ink:#E2EBE8; --muted:#93A39F; --line:#27332F;
+  --accent:#4DBFB2; --accent-soft:#163331; --on-accent:#06201D;
+  --ai:#A49BF5; --ai-soft:#25224A;
+  --p1:#F07A70; --p1-soft:#3C1C1A; --p2:#EBA25C; --p2-soft:#3A2814; --p3:#79AEEA; --p3-soft:#172A40; --p4:#A3B0AC; --p4-soft:#232C2A;
+  --ok:#6CC88A; --ok-soft:#173222; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0E1514; --surface:#161F1E; --sunk:#111918; --ink:#E2EBE8; --muted:#93A39F; --line:#27332F;
+  --accent:#4DBFB2; --accent-soft:#163331; --on-accent:#06201D;
+  --ai:#A49BF5; --ai-soft:#25224A;
+  --p1:#F07A70; --p1-soft:#3C1C1A; --p2:#EBA25C; --p2-soft:#3A2814; --p3:#79AEEA; --p3-soft:#172A40; --p4:#A3B0AC; --p4-soft:#232C2A;
+  --ok:#6CC88A; --ok-soft:#173222; color-scheme:dark}
+
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.5}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--surface)}
+h1,h2,h3{font-family:var(--f-display);text-wrap:balance;margin:0;line-height:1.15}
+button,input,select,textarea{font:inherit;color:inherit}
+a{color:var(--accent)}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.mono{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+.muted{color:var(--muted)}
+.wrap{max-width:1180px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+
+/* top bar */
+.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--surface);border-bottom:1px solid var(--line)}
+.top .wrap{display:flex;flex-direction:column;gap:10px;padding-block:12px 0}
+.brandrow{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.mark{width:34px;height:34px;border-radius:8px;background:var(--accent);display:grid;place-items:center;flex:none}
+.mark svg{width:20px;height:20px}
+.brand{display:flex;flex-direction:column;line-height:1.1}
+.brand b{font-family:var(--f-display);font-size:17px;letter-spacing:-.01em}
+.brand span{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em}
+.status{margin-left:auto;display:flex;gap:6px;flex-wrap:wrap}
+.chip{display:inline-flex;align-items:center;gap:6px;font-size:12px;padding:3px 9px;border-radius:999px;border:1px solid var(--line);background:var(--sunk);color:var(--muted);white-space:nowrap}
+.chip i{width:7px;height:7px;border-radius:50%;background:currentColor;display:inline-block}
+.chip.ai{background:var(--ai-soft);border-color:transparent;color:var(--ai)}
+.chip.live{background:var(--ok-soft);border-color:transparent;color:var(--ok)}
+.tabs{display:flex;gap:2px;overflow-x:auto;scrollbar-width:none;margin-bottom:-1px}
+.tabs::-webkit-scrollbar{display:none}
+.tab{appearance:none;background:none;border:0;border-bottom:2px solid transparent;padding:8px 12px 10px;cursor:pointer;color:var(--muted);font-weight:500;white-space:nowrap;display:flex;gap:6px;align-items:center}
+.tab:hover{color:var(--ink)}
+.tab[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--accent)}
+.count{font-size:11px;font-family:var(--f-mono);padding:1px 6px;border-radius:999px;background:var(--sunk);color:var(--muted)}
+.count.hot{background:var(--p1);color:#fff}
+
+main{padding-block:24px 64px}
+.view{display:flex;flex-direction:column;gap:20px}
+.vhead{display:flex;flex-wrap:wrap;align-items:end;gap:12px;justify-content:space-between}
+.vhead h1{font-size:clamp(22px,3vw,28px);letter-spacing:-.015em}
+.vhead p{margin:4px 0 0;color:var(--muted);max-width:62ch}
+
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:var(--r)}
+.pad{padding:20px}
+.grid2{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);gap:20px;align-items:start}
+@media (max-width:860px){.grid2{grid-template-columns:minmax(0,1fr)}}
+.stack{display:flex;flex-direction:column;gap:14px}
+.eyebrow{font-size:11px;text-transform:uppercase;letter-spacing:.09em;color:var(--muted);font-weight:600}
+
+/* form */
+label.f{display:flex;flex-direction:column;gap:5px;font-size:13px;font-weight:600}
+label.f small{font-weight:400;color:var(--muted)}
+.row2{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:14px}
+input[type=text],input[type=search],select,textarea{width:100%;padding:9px 11px;border:1px solid var(--line);border-radius:8px;background:var(--sunk);font-weight:400}
+textarea{min-height:110px;resize:vertical}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--accent);background:var(--surface)}
+.check{display:flex;gap:10px;align-items:flex-start;padding:12px;border:1px solid var(--line);border-radius:8px;background:var(--p1-soft);font-size:14px}
+.check input{margin-top:3px;accent-color:var(--p1);width:16px;height:16px;flex:none}
+.btn{appearance:none;border:1px solid var(--line);background:var(--surface);padding:8px 14px;border-radius:8px;cursor:pointer;font-weight:600;font-size:14px;display:inline-flex;gap:6px;align-items:center;justify-content:center}
+.btn:hover{border-color:var(--muted)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
+.btn.primary:hover{filter:brightness(1.07)}
+.btn.ai{background:var(--ai);border-color:var(--ai);color:#fff}
+.btn.sm{padding:5px 10px;font-size:13px}
+.btn:disabled{opacity:.5;cursor:default}
+.actions{display:flex;flex-wrap:wrap;gap:8px}
+
+/* suggestions + kb rows */
+.kbrow{display:flex;gap:12px;align-items:flex-start;padding:12px 14px;border-top:1px solid var(--line);text-decoration:none;color:inherit;cursor:pointer;background:none;border-left:0;border-right:0;border-bottom:0;width:100%;text-align:left}
+.kbrow:first-child{border-top:0}
+.kbrow:hover{background:var(--sunk)}
+.kbid{font-family:var(--f-mono);font-size:12px;color:var(--accent);padding-top:2px;flex:none;width:52px}
+.kbrow b{display:block;font-weight:600}
+.kbrow span{font-size:13px;color:var(--muted)}
+.suggest{border:1px dashed var(--accent);border-radius:var(--r);background:var(--accent-soft)}
+.suggest .hd{padding:10px 14px 0;font-size:13px;font-weight:600;color:var(--accent)}
+.suggest .kbrow:hover{background:transparent}
+
+/* result card */
+.result{border:1px solid var(--ai);border-radius:var(--r);overflow:hidden;background:var(--surface)}
+.result .bar{background:var(--ai-soft);color:var(--ai);padding:10px 16px;display:flex;gap:10px;align-items:center;font-size:13px;font-weight:600;flex-wrap:wrap}
+.result .body{padding:16px;display:flex;flex-direction:column;gap:12px}
+.reply{white-space:pre-wrap;background:var(--sunk);border-radius:8px;padding:12px 14px;font-size:14px}
+.dots::after{content:"";animation:dots 1.2s steps(4) infinite}
+@keyframes dots{0%{content:""}25%{content:"."}50%{content:".."}75%{content:"..."}}
+@media (prefers-reduced-motion:reduce){.dots::after{animation:none;content:"..."}}
+
+/* pills */
+.pill{display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:600;padding:2px 8px;border-radius:5px;white-space:nowrap}
+.pr-P1{background:var(--p1-soft);color:var(--p1)} .pr-P2{background:var(--p2-soft);color:var(--p2)}
+.pr-P3{background:var(--p3-soft);color:var(--p3)} .pr-P4{background:var(--p4-soft);color:var(--p4)}
+.st{background:var(--sunk);color:var(--muted)}
+.st-ai{background:var(--ai-soft);color:var(--ai)}
+.st-ok{background:var(--ok-soft);color:var(--ok)}
+.st-esc{background:var(--p2-soft);color:var(--p2)}
+.st-new{background:var(--accent-soft);color:var(--accent)}
+.ex{font-size:10px;letter-spacing:.06em;text-transform:uppercase;font-weight:700;color:var(--muted);border:1px solid var(--line);border-radius:4px;padding:0 5px}
+
+/* KB */
+.kbtools{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.kbtools input{flex:1 1 260px;max-width:440px}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.fchip{appearance:none;border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:5px 12px;font-size:13px;cursor:pointer}
+.fchip[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.kbcat{display:flex;flex-direction:column}
+.kbcat h2{font-size:15px;padding:14px 14px 4px}
+.kbcols{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,340px),1fr));gap:16px;align-items:start}
+.article{max-width:760px}
+.article h1{font-size:clamp(24px,3.2vw,32px);letter-spacing:-.02em;margin:6px 0 10px}
+.meta{display:flex;flex-wrap:wrap;gap:8px 18px;font-size:13px;color:var(--muted);padding-bottom:16px;border-bottom:1px solid var(--line)}
+.meta b{color:var(--ink);font-weight:600}
+.article ol{padding-left:0;list-style:none;counter-reset:s;display:flex;flex-direction:column;gap:12px;margin:18px 0}
+.article ol li{counter-increment:s;display:grid;grid-template-columns:30px minmax(0,1fr);gap:10px}
+.article ol li::before{content:counter(s);font-family:var(--f-mono);font-size:13px;width:26px;height:26px;border-radius:50%;background:var(--accent-soft);color:var(--accent);display:grid;place-items:center;font-weight:600}
+.article code,.reply code{font-family:var(--f-mono);font-size:.88em;background:var(--sunk);padding:1px 5px;border-radius:4px}
+.callout{border-left:3px solid var(--p2);background:var(--p2-soft);padding:12px 14px;border-radius:0 8px 8px 0;font-size:14px}
+.callout.info{border-color:var(--accent);background:var(--accent-soft)}
+
+/* queue */
+.seg{display:flex;gap:4px;flex-wrap:wrap}
+.tablewrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:14px;min-width:760px}
+th{font-size:11px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);font-weight:600;text-align:left;padding:10px 12px;border-bottom:1px solid var(--line);white-space:nowrap}
+td{padding:11px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+tbody tr{cursor:pointer}
+tbody tr:hover td{background:var(--sunk)}
+tbody tr:last-child td{border-bottom:0}
+td .sub{font-size:13px;color:var(--muted)}
+.num{font-family:var(--f-mono);font-size:12.5px;white-space:nowrap}
+.empty{padding:40px 20px;text-align:center;display:flex;flex-direction:column;gap:10px;align-items:center}
+.empty p{margin:0;max-width:48ch;color:var(--muted)}
+
+/* drawer */
+.scrim{position:fixed;inset:0;background:rgba(10,20,18,.38);z-index:20}
+.drawer{position:fixed;top:0;right:0;bottom:0;width:min(560px,100%);background:var(--surface);z-index:21;border-left:1px solid var(--line);display:flex;flex-direction:column;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);padding-right:env(safe-area-inset-right,0px)}
+.dhead{padding:16px 20px;border-bottom:1px solid var(--line);display:flex;gap:12px;align-items:flex-start}
+.dhead h2{font-size:19px}
+.dbody{padding:18px 20px;overflow-y:auto;display:flex;flex-direction:column;gap:18px}
+.kv{display:grid;grid-template-columns:120px minmax(0,1fr);gap:6px 12px;font-size:14px}
+.kv dt{color:var(--muted)} .kv dd{margin:0}
+.aibox{border:1px solid var(--ai-soft);background:var(--ai-soft);border-radius:var(--r);padding:14px;display:flex;flex-direction:column;gap:10px}
+.aibox h3{font-size:14px;color:var(--ai);display:flex;gap:8px;align-items:center}
+.match{display:grid;grid-template-columns:minmax(0,1fr) 90px;gap:4px 10px;font-size:13px;align-items:center}
+.meter{height:6px;background:var(--surface);border-radius:3px;overflow:hidden}
+.meter i{display:block;height:100%;background:var(--ai)}
+.log{display:flex;flex-direction:column;gap:0;border-left:2px solid var(--line);margin-left:6px}
+.log div{padding:0 0 12px 14px;position:relative;font-size:13.5px}
+.log div::before{content:"";position:absolute;left:-6px;top:6px;width:10px;height:10px;border-radius:50%;background:var(--surface);border:2px solid var(--muted)}
+.log div.ai::before{border-color:var(--ai);background:var(--ai-soft)}
+.log time{display:block;font-size:12px;color:var(--muted)}
+
+/* follow-ups */
+.fu{display:grid;grid-template-columns:4px minmax(0,1fr) auto;gap:0 14px;padding:14px 16px 14px 0;border-top:1px solid var(--line);align-items:start}
+.fu:first-of-type{border-top:0}
+.fu .stripe{align-self:stretch;border-radius:0 3px 3px 0;background:var(--ai)}
+.fu.over .stripe{background:var(--p1)}
+.fu.today .stripe{background:var(--p2)}
+.fu h3{font-size:15px;font-family:var(--f-body);font-weight:600}
+.fu .line{font-size:13px;color:var(--muted);margin-top:2px}
+.due{font-size:13px;font-weight:600;white-space:nowrap}
+.fu.over .due{color:var(--p1)}
+.fu .actions{margin-top:10px}
+@media (max-width:640px){.fu{grid-template-columns:4px minmax(0,1fr)}.fu .due{grid-column:2;margin-top:6px}}
+.grouph{padding:12px 16px 4px;font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:600;border-top:1px solid var(--line)}
+.grouph:first-child{border-top:0}
+
+/* insights */
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px}
+.kpi{padding:16px}
+.kpi b{display:block;font-family:var(--f-display);font-size:30px;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.kpi span{font-size:13px;color:var(--muted)}
+.kpi.aik b{color:var(--ai)}
+.bars{display:flex;flex-direction:column;gap:10px}
+.barrow{display:grid;grid-template-columns:minmax(0,1fr) 44px;gap:4px 10px;font-size:13.5px}
+.barrow .track{grid-column:1/-1;height:8px;background:var(--sunk);border-radius:4px;overflow:hidden}
+.barrow .track i{display:block;height:100%;background:var(--accent);border-radius:4px}
+.barrow .n{text-align:right;font-family:var(--f-mono);font-size:12.5px}
+
+.banner{background:var(--p2-soft);color:var(--p2);font-size:13px;padding:8px 12px;border-radius:8px}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(20px + env(safe-area-inset-bottom,0px));background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:8px;font-size:14px;z-index:30;max-width:calc(100% - 32px)}
+</style>
+
+<header class="top">
+  <div class="wrap">
+    <div class="brandrow">
+      <div class="mark" aria-hidden="true"><svg viewBox="0 0 20 20" fill="none"><path d="M8 2h4v6h6v4h-6v6H8v-6H2V8h6z" fill="var(--on-accent)"/></svg></div>
+      <div class="brand"><b>Meridian Valley Health</b><span>IT Service Desk</span></div>
+      <div class="status">
+        <span class="chip" id="storeChip"><i></i><span>Connecting</span></span>
+        <span class="chip" id="aiChip"><i></i><span>AI triage: checking</span></span>
+      </div>
+    </div>
+    <nav class="tabs" role="tablist" aria-label="Sections">
+      <button class="tab" role="tab" data-r="portal">Get help</button>
+      <button class="tab" role="tab" data-r="kb">Knowledge base</button>
+      <button class="tab" role="tab" data-r="queue">IT queue <span class="count" id="cQueue">0</span></button>
+      <button class="tab" role="tab" data-r="followups">Follow-ups <span class="count" id="cFollow">0</span></button>
+      <button class="tab" role="tab" data-r="insights">Insights</button>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap">
+  <div id="banner" class="banner" hidden></div>
+
+  <!-- PORTAL -->
+  <section class="view" id="v-portal" hidden>
+    <div class="vhead">
+      <div>
+        <h1>What's not working?</h1>
+        <p>Describe the problem and submit. Every request opens a ticket for the IT team. If a knowledge base article can fix it right away, you'll get the link immediately and a technician will still check in.</p>
+      </div>
+    </div>
+    <div class="grid2">
+      <div class="stack">
+        <form class="panel pad stack" id="ticketForm" autocomplete="off">
+          <div class="row2">
+            <label class="f">Your name<input type="text" id="fName" required maxlength="80" placeholder="Jordan Reyes"></label>
+            <label class="f">Unit or department
+              <select id="fDept" required>
+                <option value="">Choose one</option>
+                <option>Emergency Dept</option><option>ICU</option><option>Med-Surg 3 West</option><option>Labor &amp; Delivery</option>
+                <option>Radiology</option><option>Pharmacy</option><option>Laboratory</option><option>Patient Access / Registration</option>
+                <option>Revenue Cycle</option><option>Clinic – Family Medicine</option><option>Administration</option><option>Other</option>
+              </select>
+            </label>
+            <label class="f">Callback <small>Extension or mobile</small><input type="text" id="fContact" required maxlength="40" placeholder="x2214"></label>
+          </div>
+          <label class="f">Short summary<input type="text" id="fSubject" required maxlength="120" placeholder="Wristband printer printing blank labels"></label>
+          <label class="f">Details <small>What happened, what you tried, any error message</small><textarea id="fDesc" required maxlength="2000" placeholder="Started after the paper roll was changed this morning…"></textarea></label>
+          <label class="check"><input type="checkbox" id="fImpact"><span><b>Patient care is blocked right now.</b> A technician is paged immediately. For a downtime affecting a whole unit, also call the Service Desk at <b class="mono">x4357</b>.</span></label>
+          <div id="suggest" hidden></div>
+          <div class="actions"><button class="btn primary" type="submit" id="submitBtn">Submit request</button></div>
+        </form>
+        <div id="result"></div>
+      </div>
+      <div class="stack">
+        <div class="panel">
+          <div class="pad" style="padding-bottom:8px"><div class="eyebrow">Most-used fixes</div></div>
+          <div id="popular"></div>
+        </div>
+        <div class="panel">
+          <div class="pad" style="padding-bottom:8px"><div class="eyebrow">Your recent requests</div></div>
+          <div id="mine"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- KB -->
+  <section class="view" id="v-kb" hidden>
+    <div class="vhead">
+      <div><h1>Knowledge base</h1><p>Step-by-step fixes written by the Meridian Valley IT team. These are the same articles the AI triage sends to employees.</p></div>
+    </div>
+    <div id="kbBody"></div>
+  </section>
+
+  <!-- QUEUE -->
+  <section class="view" id="v-queue" hidden>
+    <div class="vhead">
+      <div><h1>IT queue</h1><p>Every ticket lands here, including the ones the AI answered with a KB link.</p></div>
+      <div class="seg" id="qSeg"></div>
+    </div>
+    <div class="panel" id="qBody"></div>
+  </section>
+
+  <!-- FOLLOW-UPS -->
+  <section class="view" id="v-followups" hidden>
+    <div class="vhead">
+      <div><h1>Follow-ups</h1><p>Tickets where the AI sent a KB article and the employee hasn't confirmed the fix. Check in by the due time and escalate if it didn't work.</p></div>
+    </div>
+    <div class="panel" id="fuBody"></div>
+  </section>
+
+  <!-- INSIGHTS -->
+  <section class="view" id="v-insights" hidden>
+    <div class="vhead">
+      <div><h1>Insights</h1><p>How often the knowledge base solves the problem before a technician touches it.</p></div>
+    </div>
+    <div id="inBody" class="stack"></div>
+  </section>
+</main>
+
+<div class="scrim" id="scrim" hidden></div>
+<aside class="drawer" id="drawer" hidden aria-label="Ticket details"></aside>
+<div class="toast" id="toast" hidden></div>
+
+<!-- ENGINE: data + triage logic. No DOM access, so it can run in Node for tests and seeding. -->
+<script id="engine">
+var DESK_EXT = "x4357";
+var KB = [
+ {id:"kb101",cat:"Accounts & sign-in",title:"Reset your network password",self:true,mins:3,
+  summary:"Use MyAccess to reset a forgotten or expired password without calling the desk.",
+  tags:["password","reset","forgot","expired","change password","login","log in","sign in","myaccess"],
+  steps:["From any workstation or your phone, go to `myaccess.meridianvalley.example`.","Select **Forgot password** and enter your network ID (the same one you use for email, without @meridianvalley).","Approve the prompt in the MVH Authenticator app, or enter the code texted to your enrolled mobile number.","Create a new password: at least 14 characters, not one of your last 10. A short phrase works well.","Wait about 2 minutes for the change to reach every system, then sign in with the new password. On a shared workstation, lock and unlock it first."],
+  note:"If you aren't enrolled in MyAccess yet, the desk has to verify you by phone. Call " + "x4357" + "."},
+ {id:"kb102",cat:"Accounts & sign-in",title:"Set up or move MFA to a new phone",self:true,mins:5,
+  summary:"Enroll the MVH Authenticator app, or move it when you replace your phone.",
+  tags:["mfa","authenticator","new phone","two factor","2fa","code","push","approve","verification"],
+  steps:["On a workstation, sign in to `myaccess.meridianvalley.example` and open **Security info**.","Choose **Add sign-in method → Authenticator app**.","Install MVH Authenticator from your phone's app store and scan the QR code shown on screen.","Approve the test notification.","If you replaced your phone, remove the old device from the list so stale prompts stop."],
+  note:"Lost the old phone and can't sign in at all? Call the desk; we'll issue a one-time pass after verifying your identity."},
+ {id:"kb103",cat:"Accounts & sign-in",title:"Badge tap isn't signing you in",self:true,mins:2,
+  summary:"Fix tap-and-go badge sign-in on shared clinical workstations.",
+  tags:["badge","tap","tap and go","proximity","reader","sso","single sign on","card reader","imprivata"],
+  steps:["Hold the badge flat against the reader for a full second. Lanyards with two cards can block the read.","If the reader light stays off, check the USB cable behind the monitor and reseat it.","Sign in once with your username and password, then tap when prompted to re-link your badge.","Try a neighboring workstation. If it works there, note the asset tag of the broken one in your ticket."],
+  note:"New or replacement badges take up to 4 hours to activate after Security prints them."},
+ {id:"kb104",cat:"Accounts & sign-in",title:"Unlock an account after failed sign-ins",self:true,mins:2,
+  summary:"Accounts lock for 15 minutes after 6 failed attempts. Here's how to unlock sooner.",
+  tags:["locked","locked out","lockout","account locked","too many attempts","disabled"],
+  steps:["Stop trying for now. Each new attempt restarts the lockout timer.","Check your phone or other workstations for an old saved password (Outlook on your phone is the usual cause).","Go to `myaccess.meridianvalley.example` and choose **Unlock account**.","After unlocking, update the saved password on your phone's email app so it doesn't lock you out again."],
+  note:null},
+ {id:"kb201",cat:"Clinical apps",title:"CareChart EHR frozen or \"session expired\"",self:true,mins:3,
+  summary:"Recover a hung CareChart session without losing unsigned documentation.",
+  tags:["carechart","ehr","emr","chart","charting","frozen","hung","session expired","not responding","freeze"],
+  steps:["Wait 30 seconds. CareChart often recovers after a slow save.","If you have unsigned notes, take a photo of them or copy the text to Notepad before closing anything.","Close CareChart with **File → Exit**. If it won't close, press `Ctrl+Shift+Esc`, select CareChart, and choose **End task**.","Relaunch from the MVH Workspace icon and sign in. Unsigned work is usually recovered in **Incomplete notes**.","If more than one person on your unit sees the same thing, check the status banner on the intranet home page and call " + "x4357" + "."],
+  note:"Downtime procedures are in the red binder at each nurses' station."},
+ {id:"kb202",cat:"Printing & devices",title:"Wristband or label printer printing blank or misaligned",self:true,mins:4,
+  summary:"Recalibrate a patient wristband or specimen label printer after a media change.",
+  tags:["wristband","label","labels","label printer","blank","misaligned","specimen","armband","zebra","calibrate","printing blank"],
+  steps:["Open the printer and confirm the media roll feeds from underneath, printed side up.","Make sure the gray guides touch the edges of the roll without pinching it.","Close the lid, then hold the **Feed** button until the light flashes twice and release. The printer measures the new media and feeds a few blank labels.","Reprint the wristband from CareChart (**Patient → Reprint ID band**).","Still blank? The ribbon may be out or the roll may be the wrong type. Swap in a roll from the supply closet labeled for this printer model."],
+  note:null},
+ {id:"kb203",cat:"Clinical apps",title:"Dictation microphone not detected",self:true,mins:3,
+  summary:"Get a handheld dictation mic working again in the dictation app.",
+  tags:["dictation","microphone","mic","speech","dictate","dragon","powermic","voice recognition","headset"],
+  steps:["Unplug the microphone and plug it into a USB port directly on the computer, not a keyboard or hub.","In the dictation app, choose **Audio → Select microphone** and pick the handheld mic.","Run **Audio → Check volume** and read the sample sentence.","In MVH Workspace sessions, close and reopen the session after plugging in the mic so it gets passed through."],
+  note:null},
+ {id:"kb204",cat:"Clinical apps",title:"MVH Workspace (virtual desktop) won't launch",self:true,mins:4,
+  summary:"Fix a virtual desktop that spins, fails to connect, or opens a blank window.",
+  tags:["workspace","virtual desktop","citrix","vdi","remote app","won't launch","won't open","spinning","black screen","blank window"],
+  steps:["Close every MVH Workspace window, including the icon in the system tray (right-click → **Exit**).","Open the Workspace app again and sign in.","If you're off site, connect to MVH Remote Access (VPN) first.","Still failing: open the Workspace app's **Account settings → Reset app**, then sign in again."],
+  note:null},
+ {id:"kb301",cat:"Printing & devices",title:"Add a printer or clear a stuck print job",self:true,mins:3,
+  summary:"Map a unit printer by its number and clear jobs stuck in the queue.",
+  tags:["printer","print","printing","add printer","queue","stuck","paper jam","won't print","map printer","toner"],
+  steps:["Find the printer number on the white label on the front of the printer (for example `MVH-3W-PR02`).","Press `Win`, type **Add printer**, choose **Find a printer by name**, and enter `\\\\print01\\` followed by the printer number.","To clear a stuck job: open **Printers & scanners**, select the printer, open the queue, and cancel your job.","If the printer itself shows an error (jam, toner), follow the steps on its screen or tell your unit secretary to call the vendor number on the label."],
+  note:null},
+ {id:"kb302",cat:"Printing & devices",title:"Workstation on wheels battery drains fast",self:true,mins:5,
+  summary:"Swap and condition WOW cart batteries so carts last a full shift.",
+  tags:["wow","cart","workstation on wheels","cow","battery","charging","drains","dies","power"],
+  steps:["Plug the cart into the wall at the start of each shift change. The cart charges the battery only when its power switch is on.","Check the battery gauge on the cart's handle. Fewer than 2 bars after a full charge means the battery is worn out.","Swap in a charged spare from the unit's charging station and put the old one on the charger.","Batteries older than 2 years (date sticker on the battery) should be replaced. Put in a ticket with the cart's asset tag."],
+  note:null},
+ {id:"kb303",cat:"Printing & devices",title:"Second monitor shows no picture",self:true,mins:2,
+  summary:"Get a dual-monitor setup displaying again.",
+  tags:["monitor","second monitor","dual monitor","screen","display","no signal","black screen","external display"],
+  steps:["Check that the monitor's power light is on and the cable is seated at both ends.","Press `Win+P` and choose **Extend**.","Right-click the desktop → **Display settings** → **Detect**.","Try the other video port on the computer, or swap cables with a working monitor nearby."],
+  note:null},
+ {id:"kb401",cat:"Network & remote",title:"Connect to MVH Remote Access (VPN)",self:true,mins:4,
+  summary:"Sign in to the VPN from home and fix the common connection errors.",
+  tags:["vpn","remote","remote access","work from home","home","connect","globalprotect","off site","tunnel"],
+  steps:["Make sure your home internet works by opening any public website.","Open **MVH Remote Access** from the system tray and enter `remote.meridianvalley.example` as the portal.","Sign in with your network password and approve the MFA prompt.","If it says the portal can't be reached, restart the computer, then try again on a different network (a phone hotspot works for testing).","Hotel and airport Wi-Fi often require you to accept their terms in a browser before the VPN can connect."],
+  note:null},
+ {id:"kb402",cat:"Network & remote",title:"Which Wi-Fi to use: MVH-Secure vs MVH-Guest",self:true,mins:2,
+  summary:"Connect hospital laptops and personal phones to the right wireless network.",
+  tags:["wifi","wi-fi","wireless","internet","guest","mvh-secure","mvh-guest","network","no internet"],
+  steps:["Hospital-owned laptops and tablets join **MVH-Secure** automatically. Don't type a password; if it asks for one, restart the device.","Personal phones and visitor devices use **MVH-Guest**. Open a browser and accept the terms page.","If a hospital device lands on MVH-Guest, forget MVH-Guest in Wi-Fi settings and restart.","Dead spots are tracked by location. In your ticket, give the room or hallway."],
+  note:null},
+ {id:"kb501",cat:"Email & collaboration",title:"Open a shared mailbox in Outlook",self:true,mins:2,
+  summary:"Add a unit or department shared mailbox you already have access to.",
+  tags:["shared mailbox","mailbox","outlook","email","inbox","department email","add mailbox"],
+  steps:["Shared mailboxes you're a member of appear in Outlook on their own within an hour of being granted.","If it's missing, go to **File → Account settings → Account settings**, select your account, **Change → More settings → Advanced**.","Under **Open these additional mailboxes**, add the mailbox name and select **OK**.","Restart Outlook."],
+  note:"If you don't have access yet, your manager has to approve it. See \"Request access to a new application or mailbox\"."},
+ {id:"kb502",cat:"Email & collaboration",title:"Teams calls: no audio or others can't hear you",self:true,mins:2,
+  summary:"Pick the right speaker and mic in Teams before or during a call.",
+  tags:["teams","audio","sound","microphone","mic","can't hear","speaker","headset","meeting","call"],
+  steps:["In the call, select **More (…) → Settings → Device settings**.","Choose your headset for both speaker and microphone. Docking stations often add a second, wrong option.","Make sure you aren't muted in Teams or on the headset's own mute switch.","Unplug and replug the headset, then leave and rejoin the call."],
+  note:null},
+ {id:"kb503",cat:"Security & privacy",title:"Send an encrypted email with [secure]",self:true,mins:1,
+  summary:"Protect patient information when emailing anyone outside Meridian Valley.",
+  tags:["encrypt","encrypted","secure email","phi","hipaa","outside","external","send records","[secure]"],
+  steps:["Type `[secure]` (with the square brackets) anywhere in the subject line.","Send as usual. The message is encrypted before it leaves our network.","The recipient gets a link and creates a one-time account to read it.","Email between two Meridian Valley addresses is already protected and doesn't need the tag."],
+  note:"Share only the minimum patient information needed for the purpose."},
+ {id:"kb601",cat:"Security & privacy",title:"Report a suspicious email",self:true,mins:1,
+  summary:"Use the Report Phishing button so Security can pull the message from every inbox.",
+  tags:["phishing","phish","suspicious","spam","scam","fake email","report"],
+  steps:["Don't click links, open attachments, or reply.","In Outlook, select the message and choose **Report → Phishing**.","The message is removed from your inbox and sent to the Security team."],
+  note:"If you already clicked a link, opened an attachment, or entered your password, stop and call x4357 now. That's a security incident, not a self-service fix."},
+ {id:"kb602",cat:"Security & privacy",title:"Why your screen locks after 10 minutes",self:true,mins:1,
+  summary:"The auto-lock policy on clinical and office workstations, and how to work with it.",
+  tags:["screen lock","lock screen","auto lock","timeout","screensaver","locks","idle"],
+  steps:["Workstations lock after 10 idle minutes to protect patient information. The setting can't be changed per user.","Lock manually when you step away with `Win+L` or a badge tap.","Shared workstations in patient rooms use a shorter timeout. That's expected."],
+  note:"Departments with a documented clinical need can request an exception through their director."},
+ {id:"kb701",cat:"Requests",title:"Request access to a new application or mailbox",self:false,mins:5,
+  summary:"New access needs manager approval. Here's how to request it so it isn't delayed.",
+  tags:["access","permission","permissions","new access","request access","new hire","role","security group","provisioning","onboarding"],
+  steps:["Open the **Access Request** form on the intranet under IT Services.","Name the application, the role you need (for example \"Pharmacy tech\"), and why.","Your manager receives an approval email. Most requests are completed within 2 business days of approval.","For clinical systems, training must be complete before access is granted."],
+  note:"IT can't grant access without manager approval, so this always goes to a technician."},
+ {id:"kb702",cat:"Clinical apps",title:"Web app showing old data or a blank page",self:true,mins:2,
+  summary:"Clear the browser cache for intranet and web-based clinical apps.",
+  tags:["browser","cache","edge","chrome","blank page","web","portal","intranet","old data","loading","cookies"],
+  steps:["Press `Ctrl+Shift+Delete` in the browser.","Choose **All time**, tick **Cached images and files** and **Cookies**, then **Clear now**.","Close every browser window and reopen the app.","If the page is blank only in one browser, try the other (Edge or Chrome) and note which one fails."],
+  note:null}
+];
+var KBI = {}; KB.forEach(function(a){ KBI[a.id] = a; });
+var CATEGORIES = ["Accounts & sign-in","Clinical apps","Printing & devices","Network & remote","Email & collaboration","Security & privacy","Requests","Hardware failure","General"];
+var FOLLOW_HOURS = {P1:1,P2:4,P3:24,P4:48};
+var DEFLECT_MIN = 0.6;
+
+var STOP = "a an the and or but if to of in on at for with my me i is it its this that was are be been have has had not no can can't cant cannot won't wont doesn't dont don't do does from when after before again just so up out our we us you your please help need get got keep keeps still".split(" ");
+function tokens(s){
+  return String(s||"").toLowerCase().replace(/[^a-z0-9\-\s]/g," ").split(/\s+/).filter(function(w){return w.length>1 && STOP.indexOf(w)<0;});
+}
+function kbScore(text){
+  var low = String(text||"").toLowerCase();
+  var toks = tokens(text);
+  return KB.map(function(a){
+    var score = 0, hits = [];
+    a.tags.forEach(function(t){
+      if(t.indexOf(" ")>=0 || t.indexOf("-")>=0){ if(low.indexOf(t)>=0){score+=4;hits.push(t);} }
+      else if(toks.indexOf(t)>=0){score+=3;hits.push(t);}
+    });
+    tokens(a.title).forEach(function(w){ if(toks.indexOf(w)>=0) score+=1.5; });
+    tokens(a.summary).forEach(function(w){ if(toks.indexOf(w)>=0) score+=0.5; });
+    return {id:a.id, score:score, hits:hits};
+  }).filter(function(r){return r.score>=3;}).sort(function(x,y){return y.score-x.score;});
+}
+var RX_P1 = /(patient care|code blue|can'?t chart|cannot chart|unable to chart|downtime|whole unit|entire unit|all (the )?(computers|workstations)|clicked (a |the )?link|entered my password|opened (an |the )?attachment|lost (my )?(laptop|phone|badge)|stolen|ransom)/i;
+var RX_SEC = /(clicked (a |the )?link|entered my password|opened (an |the )?attachment|lost (my )?(laptop|phone)|stolen|ransom)/i;
+var RX_HW = /(cracked|smashed|dropped|spilled|smoke|burning smell|won'?t (power|turn) on|dead (laptop|computer))/i;
+var RX_ACCESS = /(need access|request access|new hire|starting monday|add me to|give me access|permission to)/i;
+
+function keywordTriage(t){
+  var text = (t.subject||"") + "\n" + (t.description||"");
+  var ranked = kbScore(text).slice(0,3);
+  var top = ranked[0];
+  var p1 = !!t.impact || RX_P1.test(text);
+  var priority = p1 ? "P1" : /(urgent|asap|locked out|can'?t (log|sign) ?in|surgery|or schedule|discharge|admission)/i.test(text) ? "P2" : /(when you get a chance|no rush|request|would like|nice to have)/i.test(text) ? "P4" : "P3";
+  var category = RX_SEC.test(text) ? "Security & privacy" : RX_HW.test(text) ? "Hardware failure" : RX_ACCESS.test(text) ? "Requests" : top ? KBI[top.id].cat : "General";
+  var matches = ranked.map(function(r){ return {id:r.id, confidence:Math.min(0.92, Math.round((r.score/11)*100)/100), why:"Matched: " + (r.hits.slice(0,3).join(", ") || "title words")}; });
+  var blocked = p1 || RX_SEC.test(text) || RX_HW.test(text) || RX_ACCESS.test(text);
+  var deflect = !blocked && !!top && KBI[top.id].self && matches[0].confidence >= 0.5;
+  var reply, itNote;
+  if(deflect){
+    var names = matches.filter(function(m){return m.confidence>=0.6;}).slice(0,2).map(function(m){return "“"+KBI[m.id].title+"”";});
+    reply = "Hi " + firstName(t.name) + ", thanks for reaching out. This looks like something you can fix in a few minutes with " + names.join(" and ") + ". Your ticket stays open, and someone from IT will check in" + " within " + FOLLOW_HOURS[priority] + " hours to make sure it worked. If the steps don't help, choose “Still need help” and a technician will pick it up.";
+    itNote = "Keyword match on " + KBI[top.id].id + ". Confirm with the user at follow-up.";
+  } else {
+    reply = "Hi " + firstName(t.name) + ", thanks. Your ticket is in the IT queue" + (p1 ? " as urgent, and a technician has been paged." : ".") + (top ? " While you wait, “" + KBI[top.id].title + "” may have useful background." : "") ;
+    itNote = p1 ? "Flagged urgent: patient-care or security language in the ticket." : (blocked ? "Needs a technician (" + category + ")." : "No confident KB match.");
+  }
+  return {engine:"keyword", category:category, priority:priority, clinicalImpact:p1, matches:matches, deflect:deflect, reply:reply, itNote:itNote};
+}
+function firstName(n){ return String(n||"there").trim().split(/\s+/)[0] || "there"; }
+
+function aiPrompt(t){
+  var catalog = KB.map(function(a){ return {id:a.id, title:a.title, category:a.cat, summary:a.summary, selfService:a.self}; });
+  return [
+    "You are the AI triage step for the IT service desk at Meridian Valley Health, a fictional community hospital system. Read one employee ticket and decide whether a knowledge base (KB) article can fix it right now.",
+    "",
+    "KB catalog (JSON):",
+    JSON.stringify(catalog),
+    "",
+    "Ticket:",
+    "Submitter: " + t.name + " (" + t.dept + ")",
+    "Employee ticked 'patient care is blocked': " + (t.impact ? "YES" : "no"),
+    "Summary: " + t.subject,
+    "Details: " + t.description,
+    "",
+    "Rules:",
+    "- Priority P1 = patient care blocked, a clinical system down for a whole unit, or a security incident (clicked a phishing link, entered a password on a fake page, lost or stolen device). P1 is never deflected.",
+    "- P2 = one person fully blocked from working (locked out, can't chart). P3 = degraded but working. P4 = requests and minor annoyances.",
+    "- Never deflect: requests for new access (kb701 may be linked as information but deflect=false), physically broken hardware, anything needing admin rights or a site visit.",
+    "- Deflect only when a selfService article plainly matches and its steps are something the employee can do themselves. Be conservative; a wrong deflection wastes a clinician's time.",
+    "- matches: up to 3 real ids from the catalog, best first, confidence 0 to 1. Use an empty array if nothing fits.",
+    "- reply: what the employee reads right away. Plain text, under 90 words, warm and direct. Address them by first name. If deflecting, name the article title(s) and say the ticket stays open and IT will check in. If not deflecting, say a technician has it.",
+    "- itNote: one sentence for the technician.",
+    "- category: one of " + JSON.stringify(CATEGORIES) + ".",
+    "",
+    'Reply with only this JSON: {"category":"...","priority":"P1|P2|P3|P4","clinicalImpact":true|false,"matches":[{"id":"kb101","confidence":0.0,"why":"..."}],"deflect":true|false,"reply":"...","itNote":"..."}'
+  ].join("\n");
+}
+function cleanAI(raw, t){
+  var r = raw && typeof raw === "object" ? raw : {};
+  var pr = ["P1","P2","P3","P4"].indexOf(r.priority) >= 0 ? r.priority : "P3";
+  if(t.impact) pr = "P1";
+  var matches = Array.isArray(r.matches) ? r.matches.filter(function(m){return m && KBI[m.id];}).slice(0,3).map(function(m){
+    var c = Number(m.confidence); if(!(c>=0)) c = 0; if(c>1) c = 1;
+    return {id:String(m.id), confidence:Math.round(c*100)/100, why:String(m.why||"").slice(0,200)};
+  }) : [];
+  var deflect = !!r.deflect && pr !== "P1" && matches.length > 0 && matches[0].confidence >= DEFLECT_MIN && KBI[matches[0].id].self;
+  var cat = CATEGORIES.indexOf(r.category) >= 0 ? r.category : (matches[0] ? KBI[matches[0].id].cat : "General");
+  var reply = String(r.reply||"").trim().slice(0,900);
+  if(!reply) return null;
+  if(!deflect && r.deflect) reply = "Hi " + firstName(t.name) + ", thanks. Your ticket is in the IT queue and a technician will follow up." + (matches[0] ? " While you wait, “" + KBI[matches[0].id].title + "” may help." : "");
+  return {engine:"claude", category:cat, priority:pr, clinicalImpact:!!r.clinicalImpact || pr==="P1", matches:matches, deflect:deflect, reply:reply, itNote:String(r.itNote||"").slice(0,300)};
+}
+function triagePatch(t, tri, nowMs){
+  var now = new Date(nowMs).toISOString();
+  var log = (t.log||[]).slice();
+  var patch = {priority:tri.priority, category:tri.category, triage:tri, triagedAt:now};
+  if(tri.deflect){
+    var due = new Date(nowMs + FOLLOW_HOURS[tri.priority]*3600e3).toISOString();
+    patch.status = "Awaiting user"; patch.aiAssisted = true; patch.followUpAt = due;
+    patch.kbSent = tri.matches.filter(function(m){return m.confidence>=0.6;}).slice(0,2).map(function(m){return m.id;});
+    log.push({at:now, who:"AI triage", ai:true, text:"Sent " + patch.kbSent.join(", ") + " to the submitter. Follow-up reminder set for " + FOLLOW_HOURS[tri.priority] + "h."});
+  } else {
+    patch.status = "New"; patch.aiAssisted = false; patch.followUpAt = null; patch.kbSent = [];
+    log.push({at:now, who:"AI triage", ai:true, text:"Routed to the IT queue as " + tri.priority + (tri.priority==="P1" ? " and paged the on-call technician." : ". " + (tri.itNote||""))});
+  }
+  patch.log = log;
+  return patch;
+}
+function makeId(nowMs){
+  var d = new Date(nowMs);
+  var p = function(n){return String(n).padStart(2,"0");};
+  var rnd = Math.random().toString(36).slice(2,6).toUpperCase();
+  return "INC" + String(d.getFullYear()).slice(2) + p(d.getMonth()+1) + p(d.getDate()) + "-" + rnd;
+}
+var EXAMPLES = [
+ {h:30, name:"Dana Whitfield", dept:"Med-Surg 3 West", contact:"x3310", subject:"Wristband printer printing blank labels", description:"Changed the roll this morning and now every armband comes out blank. Tried turning it off and on.", impact:false, resp:null},
+ {h:27, name:"Marcus Bell", dept:"Revenue Cycle", contact:"x5120", subject:"Forgot my password after vacation", description:"Back from two weeks off and my password expired. Can't get into anything.", impact:false, resp:"yes"},
+ {h:22, name:"Priya Natarajan", dept:"Pharmacy", contact:"x4471", subject:"Need access to the pharmacy inventory app", description:"New hire starting Monday in the pharmacy, needs access to the inventory system and the pharmacy shared mailbox.", impact:false, resp:null},
+ {h:20, name:"Tom Okafor", dept:"Administration", contact:"(661) 555-0148", subject:"VPN won't connect from home", description:"MVH Remote Access says portal cannot be reached. Home internet works fine otherwise.", impact:false, resp:"no"},
+ {h:6, name:"Lena Fischer", dept:"Emergency Dept", contact:"x2201", subject:"CareChart frozen on all ED workstations", description:"Every workstation in ED pod B froze in CareChart at the same time. We can't chart and have patients waiting.", impact:true, resp:null},
+ {h:5, name:"Rosa Delgado", dept:"Radiology", contact:"x2875", subject:"Dictation mic not working", description:"PowerMic isn't detected in the dictation app since this morning. Plugged into the keyboard.", impact:false, resp:null},
+ {h:3, name:"Kevin Tran", dept:"Patient Access / Registration", contact:"x1902", subject:"Clicked a link in a weird email", description:"Got an email about a package delivery, clicked the link and it asked for my password. I entered it before I realized.", impact:false, resp:null},
+ {h:1.5, name:"Aisha Grant", dept:"Clinic – Family Medicine", contact:"x6630", subject:"Second monitor has no signal", description:"My second screen says no signal after the docking station was moved.", impact:false, resp:null}
+];
+function buildExamples(nowMs){
+  return EXAMPLES.map(function(e, i){
+    var created = nowMs - e.h*3600e3;
+    var t = {id:makeId(created), name:e.name, dept:e.dept, contact:e.contact, subject:e.subject, description:e.description, impact:e.impact,
+      createdAt:new Date(created).toISOString(), status:"Triaging", example:true, assignee:null,
+      log:[{at:new Date(created).toISOString(), who:"Portal", text:"Ticket submitted by " + e.name + "."}]};
+    t.id = t.id.slice(0,-4) + ("EX" + i).padEnd(4,"0").slice(0,4);
+    var tri = keywordTriage(t);
+    var p = triagePatch(t, tri, created + 4000);
+    Object.keys(p).forEach(function(k){ t[k]=p[k]; });
+    if(e.resp === "yes"){ var at = new Date(created + 1.2*3600e3).toISOString(); t.status = "Resolved by KB"; t.followUpAt = null; t.resolvedAt = at; t.log.push({at:at, who:e.name, text:"Confirmed the KB article fixed it."}); }
+    if(e.resp === "no"){ var at2 = new Date(created + 2*3600e3).toISOString(); t.status = "Escalated"; t.followUpAt = null; t.log.push({at:at2, who:e.name, text:"Said the KB article didn't fix it. Escalated to a technician."}); }
+    if(t.priority==="P1"){ t.status = "In progress"; t.assignee = "On-call tech"; t.log.push({at:new Date(created + 9*60e3).toISOString(), who:"On-call tech", text:"Acknowledged page. Investigating."}); }
+    return t;
+  });
+}
+if(typeof module !== "undefined") module.exports = {KB:KB, keywordTriage:keywordTriage, triagePatch:triagePatch, cleanAI:cleanAI, aiPrompt:aiPrompt, buildExamples:buildExamples};
+</script>
+
+<!-- APP: UI -->
+<script>
+(function(){
+var tickets = [], store = null, sample = null, aiState = "checking";
+var route = "portal", kbArticle = null, kbQ = "", kbCat = "All", qFilter = "tech", openId = null, lastSubmitted = null, submittedState = null;
+var $ = function(s){ return document.querySelector(s); };
+function esc(s){ return String(s==null?"":s).replace(/[&<>"']/g, function(c){ return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]; }); }
+function md(s){ return esc(s).replace(/`([^`]+)`/g,"<code>$1</code>").replace(/\*\*([^*]+)\*\*/g,"<b>$1</b>"); }
+function ls(k, v){ try{ if(v===undefined){ return JSON.parse(localStorage.getItem(k)); } localStorage.setItem(k, JSON.stringify(v)); }catch(e){ return null; } }
+function rel(iso){
+  if(!iso) return "";
+  var d = (Date.now() - new Date(iso).getTime())/1000, a = Math.abs(d), s;
+  if(a<60) s = "just now"; else if(a<3600) s = Math.round(a/60)+"m"; else if(a<86400) s = Math.round(a/3600)+"h"; else s = Math.round(a/86400)+"d";
+  if(s==="just now") return s;
+  return d>=0 ? s+" ago" : "in "+s;
+}
+function clock(iso){ try{ return new Date(iso).toLocaleString([], {weekday:"short", hour:"numeric", minute:"2-digit"}); }catch(e){ return iso; } }
+function toast(msg){ var t = $("#toast"); t.textContent = msg; t.hidden = false; clearTimeout(toast._t); toast._t = setTimeout(function(){ t.hidden = true; }, 2800); }
+function techName(){ return ls("mvh-tech") || "IT technician"; }
+
+/* ---------- store ---------- */
+function localStore(){
+  var K = "mvh-helpdesk-tickets";
+  var data = ls(K) || [];
+  function save(){ ls(K, data); tickets = data.slice(); render(); }
+  return { mode:"local",
+    add:function(t){ data.push(t); save(); return Promise.resolve(); },
+    update:function(id, p){ data = data.map(function(t){ return t.id===id ? Object.assign({}, t, p) : t; }); save(); return Promise.resolve(); },
+    init:function(){ tickets = data.slice(); render(); } };
+}
+function setStoreChip(){
+  var c = $("#storeChip");
+  if(!store){ c.className = "chip"; c.lastElementChild.textContent = "Connecting"; return; }
+  c.className = store.mode==="shared" ? "chip live" : "chip";
+  c.lastElementChild.textContent = store.mode==="shared" ? "Shared ticket store" : "Demo mode: this browser only";
+}
+function setAiChip(){
+  var c = $("#aiChip");
+  c.className = aiState==="claude" ? "chip ai" : "chip";
+  c.lastElementChild.textContent = aiState==="claude" ? "AI triage: Claude" : aiState==="checking" ? "AI triage: checking" : "AI triage: keyword matcher";
+}
+async function boot(){
+  render();
+  if(window.claude && typeof claude.use === "function"){
+    claude.use("sample").then(function(s){ sample = s; aiState = s ? "claude" : "keyword"; setAiChip(); }, function(){ aiState = "keyword"; setAiChip(); });
+    var db = null;
+    try{ db = await claude.use("db"); }catch(e){ db = null; }
+    if(db){
+      var col = db.collection("tickets");
+      store = { mode:"shared",
+        add:function(t){ return col.doc(t.id).set(t); },
+        update:function(id, p){ return col.doc(id).update(p); } };
+      setStoreChip();
+      col.onSnapshot(function(snap){
+        tickets = snap.docs.map(function(d){ return Object.assign({}, d.data(), {id:d.id}); });
+        render();
+      }, function(){ showBanner("Lost the connection to the shared ticket store. Reload the page to reconnect."); });
+      return;
+    }
+  } else { aiState = "keyword"; setAiChip(); }
+  store = localStore(); setStoreChip(); store.init();
+}
+function showBanner(msg){ var b = $("#banner"); b.textContent = msg; b.hidden = false; }
+function guard(p){ return Promise.resolve(p).catch(function(e){ toast(e && e.code==="invalid_argument" ? "You have view-only access, so changes can't be saved." : e && e.code==="quota_exceeded" ? "The ticket store is full. Resolve and clear old tickets." : "Couldn't save. Check your connection and try again."); throw e; }); }
+
+/* ---------- routing ---------- */
+function setRoute(r){
+  if(/^kb\d{3}$/.test(r) && KBI[r]){ route = "kb"; kbArticle = r; }
+  else if(["portal","kb","queue","followups","insights"].indexOf(r)>=0){ route = r; if(r==="kb") kbArticle = null; }
+  else { route = "portal"; }
+  render(); window.scrollTo(0,0);
+}
+window.addEventListener("hashchange", function(){ setRoute(location.hash.slice(1)); });
+document.querySelectorAll(".tab").forEach(function(b){ b.addEventListener("click", function(){ location.hash = b.dataset.r; if(location.hash.slice(1)===b.dataset.r) setRoute(b.dataset.r); }); });
+
+/* ---------- derived ---------- */
+function sorted(){ return tickets.slice().sort(function(a,b){ return (b.createdAt||"").localeCompare(a.createdAt||""); }); }
+function followups(){ return tickets.filter(function(t){ return t.status==="Awaiting user" && t.followUpAt; }).sort(function(a,b){ return a.followUpAt.localeCompare(b.followUpAt); }); }
+function overdue(t){ return t.followUpAt && new Date(t.followUpAt).getTime() < Date.now(); }
+function statusPill(t){
+  var m = {"New":"st-new","Triaging":"st","Awaiting user":"st-ai","Resolved by KB":"st-ok","Resolved":"st-ok","Escalated":"st-esc","In progress":"st"};
+  var label = t.status==="Awaiting user" ? "AI sent KB · awaiting user" : t.status;
+  return '<span class="pill '+(m[t.status]||"st")+'">'+esc(label)+'</span>';
+}
+function prPill(p){ return p ? '<span class="pill pr-'+esc(p)+'">'+esc(p)+'</span>' : '<span class="pill st">–</span>'; }
+
+/* ---------- render ---------- */
+function render(){
+  document.querySelectorAll(".tab").forEach(function(b){ b.setAttribute("aria-selected", b.dataset.r===route ? "true" : "false"); });
+  ["portal","kb","queue","followups","insights"].forEach(function(v){ $("#v-"+v).hidden = v!==route; });
+  var open = tickets.filter(function(t){ return ["New","Escalated","In progress","Triaging"].indexOf(t.status)>=0; }).length;
+  $("#cQueue").textContent = open;
+  var fu = followups(), od = fu.filter(overdue).length;
+  var cf = $("#cFollow"); cf.textContent = od ? od + " overdue" : fu.length; cf.className = od ? "count hot" : "count";
+  setStoreChip(); setAiChip();
+  if(route==="portal") renderPortal();
+  if(route==="kb") renderKB();
+  if(route==="queue") renderQueue();
+  if(route==="followups") renderFollow();
+  if(route==="insights") renderInsights();
+  if(openId) renderDrawer();
+}
+
+function kbLink(id, extra){ var a = KBI[id]; return '<a class="kbrow" href="#'+a.id+'"><span class="kbid">'+a.id.toUpperCase()+'</span><span style="min-width:0"><b>'+esc(a.title)+'</b><span>'+esc(extra || a.summary)+'</span></span></a>'; }
+
+function renderPortal(){
+  var uses = {};
+  tickets.forEach(function(t){ (t.kbSent||[]).forEach(function(id){ uses[id] = (uses[id]||0)+1; }); });
+  var pop = ["kb101","kb202","kb201","kb401","kb104"];
+  Object.keys(uses).sort(function(a,b){ return uses[b]-uses[a]; }).forEach(function(id){ if(pop.indexOf(id)<0) pop.unshift(id); });
+  $("#popular").innerHTML = pop.slice(0,5).map(function(id){ return kbLink(id); }).join("");
+  var mine = (ls("mvh-mine")||[]).map(function(id){ return tickets.find(function(t){ return t.id===id; }); }).filter(Boolean).slice(0,5);
+  $("#mine").innerHTML = mine.length ? mine.map(function(t){
+    return '<button class="kbrow" data-mine="'+esc(t.id)+'"><span class="kbid" style="width:auto">'+esc(t.id.slice(-4))+'</span><span style="min-width:0"><b>'+esc(t.subject)+'</b><span>'+esc(t.status==="Awaiting user"?"Waiting on you: did the article fix it?":t.status)+' · '+rel(t.createdAt)+'</span></span></button>';
+  }).join("") : '<p class="muted" style="margin:0;padding:0 20px 18px;font-size:14px">Requests you submit from this browser show up here.</p>';
+  document.querySelectorAll("[data-mine]").forEach(function(b){ b.onclick = function(){ lastSubmitted = b.dataset.mine; submittedState = "done"; renderResult(); $("#result").scrollIntoView({behavior:"smooth", block:"nearest"}); }; });
+  renderResult();
+}
+function renderSuggest(){
+  var text = $("#fSubject").value + " " + $("#fDesc").value;
+  var box = $("#suggest");
+  if(text.trim().length < 8){ box.hidden = true; return; }
+  var r = kbScore(text).slice(0,2);
+  if(!r.length){ box.hidden = true; return; }
+  box.hidden = false;
+  box.innerHTML = '<div class="suggest"><div class="hd">These articles might fix it now</div>' + r.map(function(x){ return kbLink(x.id); }).join("") + '</div>';
+}
+function renderResult(){
+  var el = $("#result");
+  var t = lastSubmitted && tickets.find(function(x){ return x.id===lastSubmitted; });
+  if(!t){ el.innerHTML = ""; return; }
+  var tri = t.triage;
+  var head = '<div class="bar"><span>Ticket <span class="mono">'+esc(t.id)+'</span></span>'+(t.priority?prPill(t.priority):"")+statusPill(t)+'</div>';
+  if(!tri){
+    el.innerHTML = '<div class="result">'+head+'<div class="body"><p style="margin:0" class="dots">Ticket created. Checking the knowledge base for a quick fix</p></div></div>';
+    return;
+  }
+  var arts = (t.kbSent && t.kbSent.length ? t.kbSent : (tri.matches||[]).slice(0,1).map(function(m){return m.id;}));
+  var body = '<div class="reply">'+md(tri.reply)+'</div>';
+  if(arts.length) body += '<div class="panel">'+arts.map(function(id){ return kbLink(id, "Open the steps"); }).join("")+'</div>';
+  if(t.status==="Awaiting user"){
+    body += '<div class="stack" style="gap:8px"><b style="font-size:14px">Did this fix it?</b><div class="actions"><button class="btn primary" id="rYes">Yes, it\'s fixed</button><button class="btn" id="rNo">Still need help</button></div></div>';
+  } else if(t.status==="Resolved by KB"){
+    body += '<p style="margin:0" class="muted">Marked as fixed. Thanks for letting IT know.</p>';
+  } else if(t.status==="Escalated"){
+    body += '<p style="margin:0" class="muted">A technician has it and will contact you at '+esc(t.contact)+'.</p>';
+  }
+  el.innerHTML = '<div class="result">'+head+'<div class="body">'+body+'</div></div>';
+  var y = $("#rYes"), n = $("#rNo");
+  if(y) y.onclick = function(){ userResponse(t, true); };
+  if(n) n.onclick = function(){ userResponse(t, false); };
+}
+function userResponse(t, fixed){
+  var now = new Date().toISOString(), log = (t.log||[]).slice();
+  if(fixed){ log.push({at:now, who:t.name, text:"Confirmed the KB article fixed it."}); guard(store.update(t.id, {status:"Resolved by KB", followUpAt:null, resolvedAt:now, log:log})).then(function(){ toast("Ticket closed. Glad it's working."); }, function(){}); }
+  else { log.push({at:now, who:t.name, text:"Said the KB article didn't fix it. Escalated to a technician."}); guard(store.update(t.id, {status:"Escalated", followUpAt:null, log:log})).then(function(){ toast("Sent to a technician."); }, function(){}); }
+}
+
+$("#fSubject").addEventListener("input", debounce(renderSuggest, 250));
+$("#fDesc").addEventListener("input", debounce(renderSuggest, 250));
+function debounce(fn, ms){ var h; return function(){ clearTimeout(h); h = setTimeout(fn, ms); }; }
+
+$("#ticketForm").addEventListener("submit", async function(e){
+  e.preventDefault();
+  if(!store){ toast("Still connecting to the ticket store. Try again in a moment."); return; }
+  var btn = $("#submitBtn"); btn.disabled = true;
+  var now = Date.now();
+  var t = { id:makeId(now), name:$("#fName").value.trim(), dept:$("#fDept").value, contact:$("#fContact").value.trim(),
+    subject:$("#fSubject").value.trim(), description:$("#fDesc").value.trim(), impact:$("#fImpact").checked,
+    createdAt:new Date(now).toISOString(), status:"Triaging", assignee:null, example:false,
+    log:[{at:new Date(now).toISOString(), who:"Portal", text:"Ticket submitted by " + $("#fName").value.trim() + "."}] };
+  try{ await guard(store.add(t)); }catch(err){ btn.disabled = false; return; }
+  var mine = ls("mvh-mine") || []; mine.unshift(t.id); ls("mvh-mine", mine.slice(0,20));
+  lastSubmitted = t.id; renderResult();
+  $("#ticketForm").reset(); $("#suggest").hidden = true; btn.disabled = false;
+  $("#result").scrollIntoView({behavior:"smooth", block:"nearest"});
+  var tri = await runTriage(t);
+  try{ await guard(store.update(t.id, triagePatch(t, tri, Date.now()))); }catch(err){}
+});
+async function runTriage(t){
+  if(sample){
+    try{
+      var raw = await sample.json(aiPrompt(t), {modelTier:"quick", cache:false});
+      var c = cleanAI(raw, t);
+      if(c) return c;
+    }catch(e){
+      if(e && ["not_granted","sampling_disabled","not_declared","capability_disabled","capability_removed"].indexOf(e.code)>=0){ sample = null; aiState = "keyword"; setAiChip(); }
+    }
+  }
+  return keywordTriage(t);
+}
+
+/* ---------- KB ---------- */
+function renderKB(){
+  var el = $("#kbBody");
+  if(kbArticle){
+    var a = KBI[kbArticle];
+    var sent = tickets.filter(function(t){ return (t.kbSent||[]).indexOf(a.id)>=0; });
+    var fixed = sent.filter(function(t){ return t.status==="Resolved by KB"; }).length;
+    el.innerHTML = '<article class="panel pad article">'+
+      '<a href="#kb" style="font-size:14px">← All articles</a>'+
+      '<div class="eyebrow" style="margin-top:14px">'+esc(a.cat)+' · <span class="mono">'+a.id.toUpperCase()+'</span></div>'+
+      '<h1>'+esc(a.title)+'</h1>'+
+      '<p style="margin:0 0 14px">'+esc(a.summary)+'</p>'+
+      '<div class="meta"><span>Takes about <b>'+a.mins+' min</b></span><span>'+(a.self?'<b>Self-service</b>':'<b>Needs a technician</b>')+'</span><span>Sent by AI triage <b>'+sent.length+'×</b>'+(sent.length?' · fixed it <b>'+fixed+'</b>':'')+'</span></div>'+
+      '<ol>'+a.steps.map(function(s){ return '<li><span>'+md(s)+'</span></li>'; }).join("")+'</ol>'+
+      (a.note ? '<div class="callout">'+md(a.note)+'</div>' : '')+
+      '<div class="callout info" style="margin-top:12px">Still stuck? <a href="#portal">Submit a request</a> or call the Service Desk at <b class="mono">'+DESK_EXT+'</b>, 24/7.</div>'+
+      '</article>';
+    return;
+  }
+  var cats = ["All"].concat(KB.map(function(a){return a.cat;}).filter(function(c,i,arr){ return arr.indexOf(c)===i; }));
+  var list = KB.filter(function(a){ return kbCat==="All" || a.cat===kbCat; });
+  if(kbQ.trim()){
+    var ranked = kbScore(kbQ).map(function(r){return r.id;});
+    var ql = kbQ.toLowerCase();
+    list = list.filter(function(a){ return ranked.indexOf(a.id)>=0 || (a.title+" "+a.summary).toLowerCase().indexOf(ql)>=0; });
+  }
+  var groups = {};
+  list.forEach(function(a){ (groups[a.cat] = groups[a.cat] || []).push(a); });
+  var html = '<div class="stack"><div class="kbtools"><input type="search" id="kbSearch" placeholder="Search: printer, VPN, locked out…" value="'+esc(kbQ)+'" aria-label="Search articles"><div class="chips">'+
+    cats.map(function(c){ return '<button class="fchip" data-cat="'+esc(c)+'" aria-pressed="'+(c===kbCat)+'">'+esc(c)+'</button>'; }).join("")+'</div></div>';
+  html += list.length ? '<div class="kbcols">'+Object.keys(groups).map(function(c){
+    return '<div class="panel kbcat"><h2>'+esc(c)+'</h2>'+groups[c].map(function(a){ return kbLink(a.id); }).join("")+'</div>';
+  }).join("")+'</div>' : '<div class="panel empty"><b>No articles match.</b><p>Try a different word, or <a href="#portal">submit a request</a> and a technician will help.</p></div>';
+  el.innerHTML = html + '</div>';
+  var s = $("#kbSearch");
+  s.oninput = debounce(function(){ kbQ = s.value; var pos = s.selectionStart; renderKB(); var n = $("#kbSearch"); n.focus(); try{ n.setSelectionRange(pos,pos); }catch(e){} }, 200);
+  document.querySelectorAll("[data-cat]").forEach(function(b){ b.onclick = function(){ kbCat = b.dataset.cat; renderKB(); }; });
+}
+
+/* ---------- queue ---------- */
+var FILTERS = [
+  ["tech","Needs a tech",function(t){ return ["New","Escalated","In progress","Triaging"].indexOf(t.status)>=0; }],
+  ["ai","AI sent KB",function(t){ return t.status==="Awaiting user"; }],
+  ["done","Resolved",function(t){ return t.status==="Resolved" || t.status==="Resolved by KB"; }],
+  ["all","All",function(){ return true; }]
+];
+function renderQueue(){
+  $("#qSeg").innerHTML = FILTERS.map(function(f){ var n = tickets.filter(f[2]).length; return '<button class="fchip" data-q="'+f[0]+'" aria-pressed="'+(qFilter===f[0])+'">'+f[1]+' <span class="mono" style="opacity:.7">'+n+'</span></button>'; }).join("");
+  document.querySelectorAll("[data-q]").forEach(function(b){ b.onclick = function(){ qFilter = b.dataset.q; renderQueue(); }; });
+  var f = FILTERS.find(function(x){ return x[0]===qFilter; });
+  var rows = sorted().filter(f[2]);
+  var prOrder = {P1:0,P2:1,P3:2,P4:3};
+  if(qFilter==="tech") rows.sort(function(a,b){ return (prOrder[a.priority]??9)-(prOrder[b.priority]??9) || (a.createdAt||"").localeCompare(b.createdAt||""); });
+  var el = $("#qBody");
+  if(!tickets.length){
+    el.innerHTML = '<div class="empty"><b>No tickets yet.</b><p>Submit one from <a href="#portal">Get help</a>, or load a set of example tickets to see how triage and follow-ups work.</p><button class="btn" id="loadEx">Load example tickets</button></div>';
+    $("#loadEx").onclick = loadExamples; return;
+  }
+  if(!rows.length){ el.innerHTML = '<div class="empty"><b>Nothing here.</b><p>No tickets match this filter.</p></div>'; return; }
+  el.innerHTML = '<div class="tablewrap"><table><thead><tr><th>Ticket</th><th>Request</th><th>Unit</th><th>Priority</th><th>Status</th><th>Triage</th><th>Opened</th></tr></thead><tbody>'+
+    rows.map(function(t){
+      var tri = t.triage ? (t.aiAssisted ? '<span class="pill st-ai">Deflected to KB</span>' : '<span class="pill st">Routed</span>') + '<div class="sub">'+(t.triage.engine==="claude"?"Claude":"Keyword")+'</div>' : '<span class="pill st dots">Triaging</span>';
+      return '<tr data-open="'+esc(t.id)+'"><td class="num">'+esc(t.id)+(t.example?'<div><span class="ex">Example</span></div>':'')+'</td><td style="min-width:220px"><b>'+esc(t.subject)+'</b><div class="sub">'+esc(t.name)+(t.assignee?' · '+esc(t.assignee):'')+'</div></td><td class="sub">'+esc(t.dept)+'</td><td>'+prPill(t.priority)+'</td><td>'+statusPill(t)+'</td><td>'+tri+'</td><td class="sub" style="white-space:nowrap">'+rel(t.createdAt)+'</td></tr>';
+    }).join("")+'</tbody></table></div>';
+  document.querySelectorAll("[data-open]").forEach(function(r){ r.onclick = function(){ openTicket(r.dataset.open); }; });
+}
+var loadingEx = false;
+async function loadExamples(){
+  if(loadingEx) return; loadingEx = true;
+  var ex = buildExamples(Date.now());
+  for(var i=0;i<ex.length;i++){ try{ await guard(store.add(ex[i])); }catch(e){ break; } }
+  loadingEx = false; toast("Loaded " + ex.length + " example tickets.");
+}
+
+/* ---------- drawer ---------- */
+function openTicket(id){ openId = id; $("#scrim").hidden = false; $("#drawer").hidden = false; renderDrawer(); }
+function closeDrawer(){ openId = null; $("#scrim").hidden = true; $("#drawer").hidden = true; }
+$("#scrim").onclick = closeDrawer;
+document.addEventListener("keydown", function(e){ if(e.key==="Escape" && openId) closeDrawer(); });
+function renderDrawer(){
+  var t = tickets.find(function(x){ return x.id===openId; });
+  var d = $("#drawer");
+  if(!t){ closeDrawer(); return; }
+  var tri = t.triage;
+  var keepNote = $("#dNote") ? $("#dNote").value : "";
+  var html = '<div class="dhead"><div style="flex:1;min-width:0"><div class="eyebrow"><span class="mono">'+esc(t.id)+'</span>'+(t.example?' · <span class="ex">Example</span>':'')+'</div><h2>'+esc(t.subject)+'</h2><div class="actions" style="margin-top:8px">'+prPill(t.priority)+statusPill(t)+'</div></div><button class="btn sm" id="dClose" aria-label="Close">Close</button></div>';
+  html += '<div class="dbody">';
+  html += '<dl class="kv"><dt>Submitted by</dt><dd>'+esc(t.name)+'</dd><dt>Unit</dt><dd>'+esc(t.dept)+'</dd><dt>Callback</dt><dd class="mono">'+esc(t.contact)+'</dd><dt>Opened</dt><dd>'+clock(t.createdAt)+' <span class="muted">('+rel(t.createdAt)+')</span></dd><dt>Assigned</dt><dd>'+(t.assignee?esc(t.assignee):'<span class="muted">Unassigned</span>')+'</dd>'+(t.followUpAt?'<dt>Follow up</dt><dd style="color:'+(overdue(t)?'var(--p1)':'inherit')+'"><b>'+clock(t.followUpAt)+'</b> · '+rel(t.followUpAt)+'</dd>':'')+'</dl>';
+  html += '<div><div class="eyebrow" style="margin-bottom:6px">Description</div><div style="white-space:pre-wrap">'+esc(t.description)+'</div>'+(t.impact?'<p class="pill pr-P1" style="margin-top:8px">Submitter reported patient care blocked</p>':'')+'</div>';
+  if(tri){
+    html += '<div class="aibox"><h3>AI triage <span class="muted" style="font-weight:400;font-family:var(--f-body);font-size:12px">'+(tri.engine==="claude"?"by Claude":"by keyword matcher")+' · '+esc(tri.category)+'</span></h3>';
+    html += '<div style="font-size:14px">'+(t.aiAssisted?'<b>Deflected:</b> KB link sent to the submitter, reminder set.':'<b>Routed:</b> no self-service fix, sent to the queue.')+'</div>';
+    if(tri.matches && tri.matches.length) html += '<div class="stack" style="gap:8px">'+tri.matches.map(function(m){ return '<div class="match"><a href="#'+m.id+'">'+esc(KBI[m.id].title)+'</a><span class="mono" style="text-align:right">'+Math.round(m.confidence*100)+'%</span><div class="meter" style="grid-column:1/-1"><i style="width:'+Math.round(m.confidence*100)+'%"></i></div>'+(m.why?'<span class="muted" style="grid-column:1/-1">'+esc(m.why)+'</span>':'')+'</div>'; }).join("")+'</div>';
+    html += '<div><div class="eyebrow" style="margin-bottom:4px">Reply sent to submitter</div><div class="reply" style="background:var(--surface)">'+md(tri.reply)+'</div></div>';
+    if(tri.itNote) html += '<div style="font-size:13.5px"><b>Note for IT:</b> '+esc(tri.itNote)+'</div>';
+    html += '</div>';
+  }
+  html += '<div class="stack" style="gap:10px"><div class="eyebrow">Work this ticket</div><div class="actions">';
+  if(t.status==="Awaiting user") html += '<button class="btn ai sm" data-act="followed">Log follow-up (+24h)</button>';
+  if(t.assignee!==techName()) html += '<button class="btn sm" data-act="assign">Assign to me</button>';
+  if(["Resolved","Resolved by KB"].indexOf(t.status)<0) html += '<button class="btn sm" data-act="progress">In progress</button><button class="btn sm" data-act="escalate">Escalate</button><button class="btn primary sm" data-act="resolve">Resolve</button>';
+  else html += '<button class="btn sm" data-act="reopen">Reopen</button>';
+  html += '</div><label class="f">Add a note<textarea id="dNote" style="min-height:70px" placeholder="Called back, walked through recalibration…"></textarea></label><div class="actions"><button class="btn sm" data-act="note">Add note</button><label class="f" style="flex-direction:row;align-items:center;gap:8px;font-weight:400;margin-left:auto">Signed in as <input type="text" id="dTech" value="'+esc(techName())+'" style="width:150px;padding:5px 8px" aria-label="Technician name"></label></div></div>';
+  html += '<div><div class="eyebrow" style="margin-bottom:10px">Timeline</div><div class="log">'+(t.log||[]).slice().reverse().map(function(l){ return '<div class="'+(l.ai?'ai':'')+'"><time>'+clock(l.at)+' · '+esc(l.who)+'</time>'+esc(l.text)+'</div>'; }).join("")+'</div></div>';
+  html += '</div>';
+  d.innerHTML = html;
+  if(keepNote) $("#dNote").value = keepNote;
+  $("#dClose").onclick = closeDrawer;
+  $("#dTech").onchange = function(){ ls("mvh-tech", this.value.trim() || "IT technician"); renderDrawer(); };
+  d.querySelectorAll("[data-act]").forEach(function(b){ b.onclick = function(){ act(t, b.dataset.act); }; });
+}
+function act(t, a){
+  var now = new Date().toISOString(), me = techName(), log = (t.log||[]).slice(), p = {};
+  if(a==="followed"){ p.followUpAt = new Date(Date.now()+24*3600e3).toISOString(); log.push({at:now, who:me, text:"Followed up with " + t.name + ". Still waiting on confirmation; next check-in in 24h."}); }
+  if(a==="assign"){ p.assignee = me; log.push({at:now, who:me, text:"Assigned to " + me + "."}); }
+  if(a==="progress"){ p.status = "In progress"; p.assignee = t.assignee || me; p.followUpAt = null; log.push({at:now, who:me, text:"Started working the ticket."}); }
+  if(a==="escalate"){ p.status = "Escalated"; p.followUpAt = null; log.push({at:now, who:me, text:"Escalated for hands-on troubleshooting."}); }
+  if(a==="resolve"){ p.status = "Resolved"; p.followUpAt = null; p.resolvedAt = now; log.push({at:now, who:me, text:"Resolved."}); }
+  if(a==="reopen"){ p.status = "New"; p.resolvedAt = null; log.push({at:now, who:me, text:"Reopened."}); }
+  if(a==="note"){ var n = $("#dNote").value.trim(); if(!n) return; log.push({at:now, who:me, text:n}); $("#dNote").value = ""; }
+  p.log = log;
+  guard(store.update(t.id, p)).then(function(){ toast(a==="note" ? "Note added." : a==="followed" ? "Follow-up logged. Next reminder in 24 hours." : "Ticket updated."); }, function(){});
+}
+
+/* ---------- follow-ups ---------- */
+function renderFollow(){
+  var list = followups(), el = $("#fuBody");
+  if(!list.length){ el.innerHTML = '<div class="empty"><b>No follow-ups waiting.</b><p>When the AI answers a ticket with a KB article, a reminder appears here until the employee confirms the fix or a technician takes over.</p>'+(tickets.length?'':'<button class="btn" id="loadEx2">Load example tickets</button>')+'</div>'; var b = $("#loadEx2"); if(b) b.onclick = loadExamples; return; }
+  var endToday = new Date(); endToday.setHours(23,59,59,999);
+  var groups = [["Overdue",[]],["Due today",[]],["Upcoming",[]]];
+  list.forEach(function(t){ var due = new Date(t.followUpAt); (due < new Date() ? groups[0] : due <= endToday ? groups[1] : groups[2])[1].push(t); });
+  el.innerHTML = groups.filter(function(g){ return g[1].length; }).map(function(g){
+    var cls = g[0]==="Overdue" ? "over" : g[0]==="Due today" ? "today" : "";
+    return '<div class="grouph">'+g[0]+' · '+g[1].length+'</div>' + g[1].map(function(t){
+      var sent = (t.kbSent||[]).map(function(id){ return '<a href="#'+id+'">'+esc(KBI[id].title)+'</a>'; }).join(", ");
+      return '<div class="fu '+cls+'"><span class="stripe"></span><div style="min-width:0"><h3>'+esc(t.subject)+' '+(t.example?'<span class="ex">Example</span>':'')+'</h3><div class="line"><span class="mono">'+esc(t.id)+'</span> · '+esc(t.name)+', '+esc(t.dept)+' · call <span class="mono">'+esc(t.contact)+'</span></div><div class="line">Sent: '+sent+'</div><div class="actions"><button class="btn ai sm" data-f="followed" data-id="'+esc(t.id)+'">Log follow-up (+24h)</button><button class="btn sm" data-f="resolve" data-id="'+esc(t.id)+'">User confirmed fixed</button><button class="btn sm" data-f="escalate" data-id="'+esc(t.id)+'">Escalate</button><button class="btn sm" data-f="open" data-id="'+esc(t.id)+'">Open</button></div></div><div class="due">'+(overdue(t)?'Overdue '+rel(t.followUpAt).replace(" ago",""):'Due '+rel(t.followUpAt))+'<div class="muted" style="font-weight:400">'+clock(t.followUpAt)+'</div></div></div>';
+    }).join("");
+  }).join("");
+  el.querySelectorAll("[data-f]").forEach(function(b){ b.onclick = function(){
+    var t = tickets.find(function(x){ return x.id===b.dataset.id; }); if(!t) return;
+    if(b.dataset.f==="open") return openTicket(t.id);
+    if(b.dataset.f==="resolve"){ var now = new Date().toISOString(), log = (t.log||[]).slice(); log.push({at:now, who:techName(), text:"Confirmed with " + t.name + " that the KB article fixed it."}); guard(store.update(t.id, {status:"Resolved by KB", followUpAt:null, resolvedAt:now, log:log})).then(function(){ toast("Closed as resolved by KB."); }, function(){}); return; }
+    act(t, b.dataset.f);
+  }; });
+}
+
+/* ---------- insights ---------- */
+function renderInsights(){
+  var el = $("#inBody"), n = tickets.length;
+  if(!n){ el.innerHTML = '<div class="panel empty"><b>No data yet.</b><p>Insights fill in as tickets come through triage.</p><button class="btn" id="loadEx3">Load example tickets</button></div>'; $("#loadEx3").onclick = loadExamples; return; }
+  var tri = tickets.filter(function(t){ return t.triage; });
+  var deflected = tickets.filter(function(t){ return t.kbSent && t.kbSent.length; });
+  var fixed = tickets.filter(function(t){ return t.status==="Resolved by KB"; });
+  var escAfter = deflected.filter(function(t){ return t.status==="Escalated" || t.status==="In progress" || t.status==="Resolved"; });
+  var od = followups().filter(overdue).length;
+  var pct = function(a,b){ return b ? Math.round(a/b*100)+"%" : "–"; };
+  var html = '<div class="kpis">'+
+    '<div class="panel kpi"><b>'+n+'</b><span>Tickets opened</span></div>'+
+    '<div class="panel kpi aik"><b>'+pct(deflected.length, tri.length)+'</b><span>Answered with a KB link ('+deflected.length+')</span></div>'+
+    '<div class="panel kpi"><b>'+pct(fixed.length, deflected.length)+'</b><span>Of those, fixed without a tech ('+fixed.length+')</span></div>'+
+    '<div class="panel kpi"><b>'+escAfter.length+'</b><span>Needed a tech after the KB</span></div>'+
+    '<div class="panel kpi"><b style="color:'+(od?'var(--p1)':'inherit')+'">'+od+'</b><span>Follow-ups overdue</span></div></div>';
+  var uses = {}; deflected.forEach(function(t){ t.kbSent.forEach(function(id){ uses[id] = (uses[id]||0)+1; }); });
+  var top = Object.keys(uses).sort(function(a,b){ return uses[b]-uses[a]; }).slice(0,6), max = top.length ? uses[top[0]] : 1;
+  var pri = ["P1","P2","P3","P4"].map(function(p){ return [p, tickets.filter(function(t){ return t.priority===p; }).length]; }), pmax = Math.max.apply(null, pri.map(function(x){return x[1];}).concat([1]));
+  var eng = [["Claude", tri.filter(function(t){ return t.triage.engine==="claude"; }).length], ["Keyword matcher", tri.filter(function(t){ return t.triage.engine!=="claude"; }).length]];
+  html += '<div class="grid2"><div class="panel pad stack"><div class="eyebrow">Articles the AI sent most</div><div class="bars">'+(top.length ? top.map(function(id){ return '<div class="barrow"><a href="#'+id+'">'+esc(KBI[id].title)+'</a><span class="n">'+uses[id]+'</span><div class="track"><i style="width:'+(uses[id]/max*100)+'%"></i></div></div>'; }).join("") : '<p class="muted" style="margin:0">No KB links sent yet.</p>')+'</div></div>'+
+    '<div class="stack"><div class="panel pad stack"><div class="eyebrow">Tickets by priority</div><div class="bars">'+pri.map(function(x){ return '<div class="barrow"><span>'+prPill(x[0])+'</span><span class="n">'+x[1]+'</span><div class="track"><i style="width:'+(x[1]/pmax*100)+'%;background:var(--p'+x[0].slice(1)+')"></i></div></div>'; }).join("")+'</div></div>'+
+    '<div class="panel pad stack"><div class="eyebrow">Triaged by</div><div class="bars">'+eng.map(function(x){ return '<div class="barrow"><span>'+x[0]+'</span><span class="n">'+x[1]+'</span><div class="track"><i style="width:'+(tri.length?x[1]/tri.length*100:0)+'%;background:var(--ai)"></i></div></div>'; }).join("")+'</div></div></div></div>';
+  el.innerHTML = html;
+}
+
+setInterval(function(){ if(route==="followups" || route==="queue") render(); }, 60000);
+setRoute(location.hash.slice(1));
+boot();
+})();
+</script>
+
+</body>
+</html>
