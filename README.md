@@ -4,6 +4,18 @@ An IT service desk prototype for **Meridian Valley Health**, a fictional communi
 
 Built by Raul Astorga as a portfolio project.
 
+**▶ Live demo: [raulit-eng.github.io/healthdesk-ai-triage](https://raulit-eng.github.io/healthdesk-ai-triage/)**
+
+The demo opens with example tickets already loaded. Try submitting your own ticket (for example *"VPN says portal can't be reached"* or *"I clicked a link in a weird email"*) and watch how triage handles it.
+
+![IT queue with prioritized tickets](docs/queue.png)
+
+![Ticket detail showing AI triage matches, confidence scores, and the reply sent to the employee](docs/ticket.png)
+
+| Follow-up reminders | Insights |
+|---|---|
+| ![Follow-up board with overdue reminders](docs/followups.png) | ![Deflection rate and most-sent articles](docs/insights.png) |
+
 ## What it does
 
 | Area | What happens |
@@ -34,7 +46,7 @@ The AI is deliberately conservative, because a wrong deflection wastes a clinici
 
 It's a single self-contained file. Open `index.html` in a browser.
 
-- **As a standalone file**: tickets are saved in your browser's localStorage ("Demo mode") and triage uses the keyword matcher. Use **Load example tickets** on the IT queue to see a populated desk.
+- **As a standalone file or on GitHub Pages**: tickets are saved in your browser's localStorage ("Demo mode") and triage uses the keyword matcher. Example tickets load automatically on your first visit.
 - **As a Claude artifact**: tickets live in a shared database so everyone with the link sees the same queue, and triage uses Claude.
 
 ## Structure

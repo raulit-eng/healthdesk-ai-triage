@@ -212,6 +212,8 @@ td .sub{font-size:13px;color:var(--muted)}
 .barrow .track i{display:block;height:100%;background:var(--accent);border-radius:4px}
 .barrow .n{text-align:right;font-family:var(--f-mono);font-size:12.5px}
 
+.foot{display:flex;flex-wrap:wrap;gap:6px 16px;justify-content:space-between;padding-block:18px 28px;border-top:1px solid var(--line);font-size:13px;color:var(--muted)}
+main{padding-bottom:40px}
 .banner{background:var(--p2-soft);color:var(--p2);font-size:13px;padding:8px 12px;border-radius:8px}
 .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(20px + env(safe-area-inset-bottom,0px));background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:8px;font-size:14px;z-index:30;max-width:calc(100% - 32px)}
 </style>
@@ -316,6 +318,11 @@ td .sub{font-size:13px;color:var(--muted)}
     <div id="inBody" class="stack"></div>
   </section>
 </main>
+
+<footer class="wrap foot">
+  <span>Meridian Valley Health is a fictional organization. This is a portfolio project by <b>Raul Astorga</b>.</span>
+  <a href="https://github.com/raulit-eng/healthdesk-ai-triage" target="_blank" rel="noopener">Source on GitHub</a>
+</footer>
 
 <div class="scrim" id="scrim" hidden></div>
 <aside class="drawer" id="drawer" hidden aria-label="Ticket details"></aside>
@@ -594,6 +601,7 @@ function techName(){ return ls("mvh-tech") || "IT technician"; }
 function localStore(){
   var K = "mvh-helpdesk-tickets";
   var data = ls(K) || [];
+  if(!data.length && !ls("mvh-seeded")){ data = buildExamples(Date.now()); ls("mvh-seeded", true); ls(K, data); }
   function save(){ ls(K, data); tickets = data.slice(); render(); }
   return { mode:"local",
     add:function(t){ data.push(t); save(); return Promise.resolve(); },
